@@ -230,7 +230,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.textArea, cmd = m.textArea.Update(msg)
 			cmds = append(cmds, cmd)
-
 		case nodeView:
 			switch key {
 			case "esc", "q":
@@ -240,6 +239,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "e":
 				m.textInput.SetValue(m.currentNode.Title)
 				m.textInput.Focus()
+				m.textArea.SetValue(m.currentNode.Content)
 				m.state = nodeTitleView
 				return m, textinput.Blink
 			}
