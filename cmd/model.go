@@ -32,6 +32,11 @@ type model struct {
 	width            int
 	height           int
 	err              error
+
+	// Link navigation
+	links            []Link
+	currentLinkIndex int
+	history          []int // Node IDs for history
 }
 
 func NewApp(db db.Db) model {
@@ -64,6 +69,9 @@ func NewApp(db db.Db) model {
 		textInput:        ti,
 		projectListIndex: 0,
 		nodeListIndex:    0,
+		links:            []Link{},
+		currentLinkIndex: 0,
+		history:          []int{},
 	}
 }
 
@@ -112,7 +120,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case "enter":
 				if len(m.projects) > 0 {
-					// Load nodes for this project
 					m.currentProject = m.projects[m.projectListIndex]
 					nodes, err := m.db.GetNodesByProjectID(m.currentProject.ID)
 					if err != nil {
@@ -180,6 +187,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				if len(m.nodes) > 0 {
 					m.currentNode = m.nodes[m.nodeListIndex]
+					m.links = parseLinks(m.currentNode.Content)
+					m.currentLinkIndex = 0
+					m.history = []int{}
 					m.state = nodeView
 				}
 			}
@@ -194,6 +204,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.currentNode.Title = m.textInput.Value()
 					if m.currentNode.Content == "" {
 						m.textArea.Reset()
+					} else {
+						m.textArea.SetValue(m.currentNode.Content)
 					}
 					m.textArea.Focus()
 					m.state = nodeContentView
@@ -234,6 +246,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch key {
 			case "esc", "q":
 				m.state = projectView
+				m.history = []int{}
 				return m, nil
 
 			case "e":
@@ -242,6 +255,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.SetValue(m.currentNode.Content)
 				m.state = nodeTitleView
 				return m, textinput.Blink
+
+			case "tab":
+				if len(m.links) > 0 {
+					m.currentLinkIndex = (m.currentLinkIndex + 1) % len(m.links)
+				}
+
+			case "enter":
+				if len(m.links) > 0 && m.currentLinkIndex < len(m.links) {
+					linkedNodeTitle := m.links[m.currentLinkIndex].Title
+					linkedNode, err := m.db.GetNodeByTitle(linkedNodeTitle, m.currentProject.ID)
+					if err == nil {
+						m.history = append(m.history, m.currentNode.ID)
+						m.currentNode = linkedNode
+						m.links = parseLinks(m.currentNode.Content)
+						m.currentLinkIndex = 0
+					}
+				}
+
+			case "b":
+				if len(m.history) > 0 {
+					lastIndex := len(m.history) - 1
+					previousNodeID := m.history[lastIndex]
+					previousNode, err := m.db.GetNode(previousNodeID)
+					if err == nil {
+						m.currentNode = previousNode
+						m.history = m.history[:lastIndex]
+						m.links = parseLinks(m.currentNode.Content)
+						m.currentLinkIndex = 0
+					}
+				}
 			}
 		}
 	}

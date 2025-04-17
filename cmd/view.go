@@ -8,7 +8,6 @@ import (
 )
 
 var (
-	// Styles
 	appNameStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("205")).
 			Background(lipgloss.Color("0")).
@@ -46,6 +45,19 @@ var (
 			Foreground(lipgloss.Color("196")).
 			Bold(true).
 			Padding(0, 1)
+
+	linkStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("39")).
+			Underline(true)
+
+	selectedLinkStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("39")).
+				Background(lipgloss.Color("237")).
+				Underline(true).
+				Bold(true)
+
+	editModeStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("244"))
 )
 
 func (m model) View() string {
@@ -55,11 +67,9 @@ func (m model) View() string {
 
 	var s strings.Builder
 
-	// Always show app name
 	s.WriteString(appNameStyle.Render("Gbrain"))
 	s.WriteString("\n\n")
 
-	// Render different views based on state
 	switch m.state {
 	case projectsView:
 		s.WriteString(titleStyle.Render("Projects"))
@@ -125,13 +135,23 @@ func (m model) View() string {
 		s.WriteString(m.textArea.View())
 		s.WriteString("\n\n")
 		s.WriteString(infoStyle.Render("ctrl+s: save • esc: back to title"))
+		s.WriteString("\n")
+		s.WriteString(editModeStyle.Render("Note: Use [[Node Title]] to create links"))
 
 	case nodeView:
 		s.WriteString(titleStyle.Render(m.currentNode.Title))
 		s.WriteString("\n\n")
-		s.WriteString(m.currentNode.Content)
+
+		content := renderContent(m.currentNode.Content, m.links, m.currentLinkIndex)
+		s.WriteString(content)
+
 		s.WriteString("\n\n")
-		s.WriteString(infoStyle.Render("e: edit • esc: back"))
+
+		if len(m.links) > 0 {
+			s.WriteString(infoStyle.Render("tab: cycle links • enter: follow link • b: go back • e: edit • esc: back"))
+		} else {
+			s.WriteString(infoStyle.Render("e: edit • esc: back"))
+		}
 	}
 
 	return s.String()
