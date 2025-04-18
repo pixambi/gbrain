@@ -81,23 +81,21 @@ func (d *Db) AddProject(project Project) error {
 func (d *Db) UpdateProject(project Project) error {
 	return d.AddProject(project)
 }
-
 func (d *Db) DeleteProject(id int) error {
+	nodes, err := d.GetNodesByProjectID(id)
+	if err != nil {
+		return err
+	}
+	for _, node := range nodes {
+		if err := d.DeleteNode(node.ID); err != nil {
+			return err
+		}
+	}
+
 	return d.db.Update(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte("projects"))
 		if b == nil {
 			return fmt.Errorf("bucket not found")
-		}
-
-		nodes, err := d.GetNodesByProjectID(id)
-		if err != nil {
-			return err
-		}
-
-		for _, node := range nodes {
-			if err := d.DeleteNode(node.ID); err != nil {
-				return err
-			}
 		}
 
 		return b.Delete([]byte(strconv.Itoa(id)))
