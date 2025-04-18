@@ -16,6 +16,8 @@ const (
 	nodeView
 	nodeTitleView
 	nodeContentView
+	confirmDeleteNodeView
+	confirmDeleteProjectView
 )
 
 type model struct {
@@ -108,6 +110,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = projectTitleView
 				return m, textinput.Blink
 
+			case "d":
+				if len(m.projects) > 0 {
+					m.currentProject = m.projects[m.projectListIndex]
+					m.state = confirmDeleteProjectView
+					return m, nil
+				}
+
 			case "j", "down":
 				if len(m.projects) > 0 && m.projectListIndex < len(m.projects)-1 {
 					m.projectListIndex++
@@ -130,6 +139,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.nodeListIndex = 0
 					m.state = projectView
 				}
+			}
+
+		case confirmDeleteProjectView:
+			switch key {
+			case "y", "Y":
+				if err := m.db.DeleteProject(m.currentProject.ID); err != nil {
+					m.err = err
+					return m, nil
+				}
+
+				projects, err := m.db.GetProjects()
+				if err != nil {
+					m.err = err
+					return m, nil
+				}
+				m.projects = projects
+
+				// Adjust the project list index if needed
+				if m.projectListIndex >= len(m.projects) && len(m.projects) > 0 {
+					m.projectListIndex = len(m.projects) - 1
+				}
+
+				m.state = projectsView
+				return m, nil
+
+			case "n", "N", "esc":
+				m.state = projectsView
+				return m, nil
 			}
 
 		case projectTitleView:
@@ -174,6 +211,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = nodeTitleView
 				return m, textinput.Blink
 
+			case "d":
+				if len(m.nodes) > 0 {
+					m.currentNode = m.nodes[m.nodeListIndex]
+					m.state = confirmDeleteNodeView
+					return m, nil
+				}
+
 			case "j", "down":
 				if len(m.nodes) > 0 && m.nodeListIndex < len(m.nodes)-1 {
 					m.nodeListIndex++
@@ -193,6 +237,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.state = nodeView
 				}
 			}
+
+		case confirmDeleteNodeView:
+			switch key {
+			case "y", "Y":
+				if err := m.db.DeleteNode(m.currentNode.ID); err != nil {
+					m.err = err
+					return m, nil
+				}
+
+				nodes, err := m.db.GetNodesByProjectID(m.currentProject.ID)
+				if err != nil {
+					m.err = err
+					return m, nil
+				}
+				m.nodes = nodes
+
+				// Adjust the node list index if needed
+				if m.nodeListIndex >= len(m.nodes) && len(m.nodes) > 0 {
+					m.nodeListIndex = len(m.nodes) - 1
+				}
+
+				m.state = projectView
+				return m, nil
+
+			case "n", "N", "esc":
+				m.state = projectView
+				return m, nil
+			}
+
 		case nodeTitleView:
 			switch key {
 			case "esc":
@@ -215,6 +288,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.textInput, cmd = m.textInput.Update(msg)
 			cmds = append(cmds, cmd)
+
 		case nodeContentView:
 			switch key {
 			case "esc":
@@ -242,6 +316,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			m.textArea, cmd = m.textArea.Update(msg)
 			cmds = append(cmds, cmd)
+
 		case nodeView:
 			switch key {
 			case "esc", "q":
@@ -255,6 +330,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.SetValue(m.currentNode.Content)
 				m.state = nodeTitleView
 				return m, textinput.Blink
+
+			case "d":
+				m.state = confirmDeleteNodeView
+				return m, nil
 
 			case "tab":
 				if len(m.links) > 0 {

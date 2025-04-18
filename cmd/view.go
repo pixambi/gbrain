@@ -58,6 +58,11 @@ var (
 
 	editModeStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("244"))
+
+	warningStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("202")).
+			Bold(true).
+			Padding(0, 1)
 )
 
 func (m model) View() string {
@@ -89,7 +94,14 @@ func (m model) View() string {
 		}
 
 		s.WriteString("\n\n")
-		s.WriteString(infoStyle.Render("j/k: navigate • n: new project • enter: open • q: quit"))
+		s.WriteString(infoStyle.Render("j/k: navigate • n: new project • d: delete project • enter: open • q: quit"))
+
+	case confirmDeleteProjectView:
+		s.WriteString(warningStyle.Render("Delete Project"))
+		s.WriteString("\n\n")
+		s.WriteString(warningStyle.Render(fmt.Sprintf("Are you sure you want to delete '%s' and all its nodes?", m.currentProject.Name)))
+		s.WriteString("\n\n")
+		s.WriteString(infoStyle.Render("y: confirm delete • n: cancel"))
 
 	case projectTitleView:
 		s.WriteString(titleStyle.Render("New Project"))
@@ -116,7 +128,14 @@ func (m model) View() string {
 		}
 
 		s.WriteString("\n\n")
-		s.WriteString(infoStyle.Render("j/k: navigate • n: new node • enter: view • esc: back"))
+		s.WriteString(infoStyle.Render("j/k: navigate • n: new node • d: delete node • enter: view • esc: back"))
+
+	case confirmDeleteNodeView:
+		s.WriteString(warningStyle.Render("Delete Node"))
+		s.WriteString("\n\n")
+		s.WriteString(warningStyle.Render(fmt.Sprintf("Are you sure you want to delete '%s'?", m.currentNode.Title)))
+		s.WriteString("\n\n")
+		s.WriteString(infoStyle.Render("y: confirm delete • n: cancel"))
 
 	case nodeTitleView:
 		action := "New"
@@ -148,9 +167,9 @@ func (m model) View() string {
 		s.WriteString("\n\n")
 
 		if len(m.links) > 0 {
-			s.WriteString(infoStyle.Render("tab: cycle links • enter: follow link • b: go back • e: edit • esc: back"))
+			s.WriteString(infoStyle.Render("tab: cycle links • enter: follow link • b: go back • e: edit • d: delete • esc: back"))
 		} else {
-			s.WriteString(infoStyle.Render("e: edit • esc: back"))
+			s.WriteString(infoStyle.Render("e: edit • d: delete • esc: back"))
 		}
 	}
 
