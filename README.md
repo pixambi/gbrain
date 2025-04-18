@@ -44,7 +44,7 @@ GBrain is a terminal-based note-taking application that lets you organize your n
 
 ## License
 
-This project is licensed under the GNUv3 - see the LICENSE file for details.
+This project is licensed under the GNU General Public License Version 3 - see the LICENSE file for details.
 
 ## Acknowledgements
 
